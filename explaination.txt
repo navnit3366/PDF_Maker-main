@@ -1,0 +1,97 @@
+import os
+import subprocess
+import streamlit as st
+from io import BytesIO
+import pythoncom
+import tempfile
+
+import os: This imports the os module, which provides functions for interacting with the operating system.
+import subprocess: This imports the subprocess module, which allows you to run external commands and processes.
+import streamlit as st: This imports the streamlit library, which is used to create web applications with interactive elements.
+from io import BytesIO: This imports the BytesIO class from the io module, which allows you to work with in-memory byte streams.
+import pythoncom: This imports the pythoncom module, which provides access to the COM library on Windows.
+import tempfile: This imports the tempfile module, which provides functions for creating temporary files and directories.
+
+def convert_to_pdf(file_path):
+    file_name, file_extension = os.path.splitext(file_path)
+    pdf_file_path = file_name + '.pdf'
+
+    if file_path.lower().endswith('.pdf'):
+        st.warning('The file is already in PDF format.')
+        return file_path
+
+    if os.name == 'nt':  # Windows
+        try:
+            pythoncom.CoInitialize()  # Initialize the COM library
+
+            from win32com.client import Dispatch
+
+            word = Dispatch('Word.Application')
+            doc = word.Documents.Open(file_path)
+            doc.SaveAs(pdf_file_path, FileFormat=17)
+            doc.Close()
+            word.Quit()
+        except Exception as e:
+            st.error(f'An error occurred while converting: {str(e)}')
+            return None
+
+    st.success('Conversion successful.')
+    return pdf_file_path
+
+convert_to_pdf: This is a function that performs the conversion of the uploaded file to PDF.
+file_name, file_extension = os.path.splitext(file_path): This line separates the file name and extension from the uploaded file path using the os.path.splitext function.
+pdf_file_path = file_name + '.pdf': This line generates the PDF file path by appending the '.pdf' extension to the file name.
+if file_path.lower().endswith('.pdf'):: This condition checks if the file already has a '.pdf' extension and displays a warning message if it does.
+pythoncom.CoInitialize(): This initializes the COM library for Windows systems using pythoncom.CoInitialize().
+from win32com.client import Dispatch: This imports the Dispatch class from the win32com.client module, which allows us to work with COM objects in Word.
+word = Dispatch('Word.Application'): This creates an instance of the Word application COM object.
+doc = word.Documents.Open(file_path): This opens the uploaded file in Word.
+doc.SaveAs(pdf_file_path, FileFormat=17): This saves the file as a PDF using the SaveAs method of the Word document object.
+doc.Close(): This closes the Word document.
+word.Quit(): This quits the Word application.
+except Exception as e:: This catches any exceptions that occur during the conversion process and displays an error message.
+st.success('Conversion successful.'): This displays a success message indicating that the conversion was successful.
+return pdf_file_path: This returns the file path of the converted PDF.
+
+def main():
+    st.title('File to PDF Converter')
+    file = st.file_uploader('Upload a file')
+
+    if file is not None:
+        file_name = file.name
+        temp_dir = tempfile.TemporaryDirectory()
+        file_path = os.path.join(temp_dir.name, file_name)
+        with open(file_path, 'wb') as f:
+            f.write(file.read())
+        st.info(f'Converting file: {file_name}')
+        converted_file = convert_to_pdf(file_path)
+        if converted_file:
+            with open(converted_file, 'rb') as f:
+                pdf_bytes = f.read()
+            st.success(f'Converted file saved as: {converted_file}')
+            st.download_button('Download Converted PDF', pdf_bytes, file_name=f'{file_name}.pdf')
+
+main: This is the main function that defines the behavior of the Streamlit web application.
+st.title('File to PDF Converter'): This sets the title of the Streamlit web application.
+file = st.file_uploader('Upload a file'): This creates a file uploader widget where the user can upload a file.
+if file is not None:: This condition checks if a file was uploaded.
+file_name = file.name: This retrieves the name of the uploaded file.
+temp_dir = tempfile.TemporaryDirectory(): This creates a temporary directory to store the uploaded file.
+file_path = os.path.join(temp_dir.name, file_name): This generates the path to the uploaded file in the temporary directory.
+with open(file_path, 'wb') as f:: This opens the file path in write binary mode and saves the uploaded file.
+st.info(f'Converting file: {file_name}'): This displays an information message indicating the file being converted.
+converted_file = convert_to_pdf(file_path): This calls the convert_to_pdf function to convert the uploaded file to PDF.
+if converted_file:: This condition checks if the file was successfully converted.
+with open(converted_file, 'rb') as f:: This opens the converted PDF file in read binary mode.
+pdf_bytes = f.read(): This reads the contents of the converted PDF file into a byte array.
+st.success(f'Converted file saved as: {converted_file}'): This displays a success message indicating the converted file's path.
+st.download_button('Download Converted PDF', pdf_bytes, file_name=f'{file_name}.pdf'): This creates a download button for the converted PDF file.
+
+if __name__ == '__main__':
+    main()
+
+__name__: This is a special variable in Python that represents the name of the current module.
+__main__: When a Python script is executed directly (not imported as a module), the value of __name__ is set to '__main__'.
+if __name__ == '__main__':: This conditional statement checks if the current script is being executed directly.
+main(): If the script is being executed directly, the main() function is called to start the Streamlit web application.
+This conditional check ensures that the main() function is only executed when the script is run directly and not when it is imported as a module.
